@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseBoolPipe,
-  Post,
-  Query,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
 import { YtService } from './yt.service';
 import { DownloadYoutubeVideoDto } from './dto/yt.dto';
 import { Response } from 'express';
