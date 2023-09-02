@@ -4,6 +4,7 @@ import { YtVideo } from './types/yt-video.type';
 import { DownloadYoutubeVideoDto } from './dto/yt.dto';
 import { Response } from 'express';
 import { v4 as uuid } from 'uuid';
+import { ytResponseStatus } from 'src/utils';
 
 @Injectable()
 export class YtService {
@@ -13,12 +14,16 @@ export class YtService {
       const chunks: Buffer[] = [];
 
       yt.stdout.on('data', (data: Buffer) => {
-        console.log(data.toString());
         chunks.push(data);
       });
 
-      yt.stderr.on('data', () => {
-        reject(new BadRequestException('could not find metadata to this url.'));
+      yt.stderr.on('data', (err: Buffer) => {
+        const messageStatus = ytResponseStatus(err.toString());
+        if (messageStatus === 'error') {
+          reject(
+            new BadRequestException('Could not find metadata for provided url'),
+          );
+        }
       });
 
       yt.on('exit', () => {
@@ -47,14 +52,15 @@ export class YtService {
         resolve({ fileSize: Number(fileSize) });
       });
 
-      ytDlp.stderr.on('data', () => {
-        reject('Could not get file size for the given url');
+      ytDlp.stderr.on('data', (err: Buffer) => {
+        if (ytResponseStatus(err.toString()) === 'error')
+          reject('Could not get file size for the given url');
       });
     });
   }
 
   getFormat(isAudioOnly: boolean) {
-    return isAudioOnly ? 'ba/b' : 'bv+ba/b';
+    return !isAudioOnly ? 'b' : 'ba[ext=m4a]/ba[ext=mp3]';
   }
 
   async downloadVideo(response: Response, option: DownloadYoutubeVideoDto) {
@@ -62,11 +68,8 @@ export class YtService {
       '-o',
       '-',
       option.videoUrl,
-      '--downloader',
-      'ffmpeg',
       '-f',
       this.getFormat(option.isAudioOnly),
-      '--progress',
     ];
 
     const ytDlpProcess = spawn('yt-dlp', ytDlpArgs);
@@ -84,7 +87,7 @@ export class YtService {
       ytDlpProcess.kill();
     });
     ytDlpProcess.on('disconnect', () => {
-      console.log('something is disconnected');
+      console.log('Got disconnected');
     });
     response.on('close', () => {
       console.log('response is closed');
