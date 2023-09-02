@@ -45,6 +45,13 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## To Run in docker container
+
+```bash
+docker build -t yt-backend .
+docker run -dp 3000:3000 yt-backend
+```
+
 ## Test
 
 ```bash
